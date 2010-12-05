@@ -15,7 +15,7 @@ entries yourself.
 This initial version of GhettoNet is a "command line app".  That means that
 it must be run from a prompt, as a privileged user.  If you don't know what
 that means then you need more help - I can't explain everything here, but I
-hope that other people will, so please search on the internet for advaice.
+hope that other people will, so please search on the Internet for advice.
 
 To see all the options available, run ghettonet.py with the "-h" argument
 or checked the "Help Output" section below.
@@ -65,7 +65,7 @@ date.
 
 The most important part of this program is the file format.  Please write new
 clients or design new ways of spreading this data - this is very much a proof
-of concept (and, I hope, a librray others can build on).
+of concept (and, I hope, a library others can build on).
 
 
 Help Output
