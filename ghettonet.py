@@ -356,7 +356,7 @@ class Entry(object):
         Returns a list containing a single line, with the formatted date
         '''
         names = list(self.names)
-        names.sort(key=lambda n: len(n))
+        names.sort(key=lambda n: len(n), reverse=True)
         return ['%s    %s' % (self.ipv4, ' '.join(names))]
 
     def format_comments(self):
