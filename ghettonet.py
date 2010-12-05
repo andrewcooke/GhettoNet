@@ -757,7 +757,7 @@ def read_all(options):
             if ok:
                 yield entry
         source.close()
-    for path in pull_urls(options.urls):
+    for path in pull_urls(options.urls, quiet=options.quiet):
         source = open(path)
         for (ok, entry) in parse(split(source), quiet=options.quiet):
             if ok:
