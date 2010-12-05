@@ -8,8 +8,11 @@ Welcome to GhettoNet!
 Introduction
 ------------
 
-GhettoNet helps you see censored websites by adding their names to the 
-"hosts" file on your computer.
+GhettoNet helps you see censored websites by adding their names to the "hosts"
+file on your computer.  It can pull updates from the web, or read them from a
+file (perhaps a saved email).  It can also print out the addresses you have so
+that you can send them to a friend.  And you can add or delete particular
+entries yourself.
 
 This initial version of GhettoNet is a "command line app".  That means that
 it must be run from a prompt, as a privileged user.  If you don't know what
