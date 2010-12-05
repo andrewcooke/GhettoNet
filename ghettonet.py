@@ -336,7 +336,7 @@ class Entry(object):
         Parse the IPv4 address and associated names from the given line.
         
         >>> Entry().set_address('1.2.3.4 a.b.c p.q').format_address()
-        ['1.2.3.4    p.q a.b.c']
+        ['1.2.3.4    a.b.c p.q']
         >>> Entry().set_address('1.2.3.4 <a href="">p.q</a>').format_address()
         ['1.2.3.4    p.q']
         '''
