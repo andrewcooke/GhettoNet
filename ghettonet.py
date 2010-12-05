@@ -117,6 +117,7 @@ it, but it comes with no warranty or guarantee.
 
 from datetime import datetime
 from doctest import testmod
+from itertools import chain
 from optparse import OptionParser, OptionGroup
 from os import linesep, environ, remove, rename
 from os.path import exists, isfile
@@ -179,6 +180,9 @@ Examples:
 
   To update hosts from a URL
     %prog -w -u https://github.com/ghettonet/GhettoNet
+  Since updating a hosts file requires system privileges, a typical use on
+  Linux might look like:
+    sudo %prog -w -u https://github.com/ghettonet/GhettoNet
 
   To display ghettonet entries in your hosts file
     %prog
@@ -266,7 +270,8 @@ class Entry(object):
     @classmethod
     def from_lines(cls, lines):
         '''
-        Create a single object from a set of lines, as extracted by parse().
+        Create a single object from the text that defines it (a set of 
+        lines, as extracted by parse()).
         '''
         entry = cls()
         for line in lines:
@@ -385,8 +390,8 @@ class Entry(object):
 
     def single_name(self, name):
         '''
-        Return an entry with a single name (we can re-use this instance if
-        this entry only has one name).
+        Return a clone of this entry, but with a single name (we can re-use 
+        this instance if this entry only has one name).
         '''
         assert name in self.names
         if len(self.names) == 1:
@@ -574,7 +579,7 @@ def merge_same_ipv4(entries, quiet=True):
     def combine():
         for group in groups():
             merged = group[0]
-            known_comments = set(map(strip, merged.comments))
+            known_comments = set(map(strip_comment, merged.comments))
             for other in group[1:]:
                 combine_comments(merged, other, known_comments)
             if not quiet and len(group) > 1:
@@ -584,17 +589,17 @@ def merge_same_ipv4(entries, quiet=True):
     return list(combine())
 
 
-def strip(comment):
+def strip_comment(comment):
     '''
     Remove all excess text and prefixes from a comment.
 
-    >>> strip('a b')
+    >>> strip_comment('a b')
     'a b'
-    >>> strip('##  a b  ')
+    >>> strip_comment('##  a b  ')
     'a b'
-    >>> strip(' ## # a b  ')
+    >>> strip_comment(' ## # a b  ')
     'a b'
-    >>> strip(' ##    ')
+    >>> strip_comment(' ##    ')
     ''
     '''
     comment = comment.strip()
@@ -606,14 +611,15 @@ def strip(comment):
 def combine_comments(merged, other, known_comments=None):
     '''
     Copy non-duplicate comments from other to merged.
+
     >>> combine_comments(Entry(comments=['a', 'b']),
     ...                  Entry(comments=['a', 'c']))
     <Entry None: [] ['a', 'b', 'c']>
     '''
     if known_comments is None:
-        known_comments = set(map(strip, merged.comments))
+        known_comments = set(map(strip_comment, merged.comments))
     for comment in other.comments:
-        stripped = strip(comment)
+        stripped = strip_comment(comment)
         if stripped not in known_comments:
             known_comments.add(stripped)
             merged.comments.append(comment)
@@ -647,7 +653,7 @@ def merge_force(entries, quiet=True):
     if quiet:
         raise Exception('Conflicting IPv4 addresses (%s) for %s' % \
             (','.join(map(lambda e: e.ipv4, entries)), merged.names[0]))
-    known_comments = set(map(strip, merged.comments))
+    known_comments = set(map(strip_comment, merged.comments))
     for other in entries[1:]:
         print >> stderr, 'WARNING: Discarding %s as conflict for %s' % \
             (other.ipv4, merged.names[0])
@@ -657,6 +663,9 @@ def merge_force(entries, quiet=True):
     
 
 def note_access(source, quiet=True, write=False):
+    '''
+    Print a message on stderr to help the user track source access.
+    '''
     if not quiet:
         if write:
             action = 'Writing to'
@@ -680,6 +689,9 @@ def get_hosts_path(path=None):
         
 
 def open_hosts(path=None, mode='r', quiet=True):
+    '''
+    Open the local hosts file.
+    '''
     path = get_hosts_path(path)
     note_access(path, quiet, 'w' in mode)
     return open(path, mode)
@@ -694,6 +706,11 @@ def split(open_file):
 
 
 def pull_urls(urls, quiet=True):
+    '''
+    This generates a sequence of local files which contain the contents of
+    the given urls.  The contents should be processed before the next 
+    sequence entry is evaluated, as each is deleted in turn.
+    '''
     for url in urls:
         note_access(url, quiet)
         (path, headers) = urlretrieve(url)
@@ -710,7 +727,7 @@ def from_options(options):
             raise Exception('Missing IPv4 address (-4)')
         if not options.names:
             raise Exception('Missing names (-n)')
-        entry = Entry(comments = map(lambda c: '# %s' % strip(c), 
+        entry = Entry(comments = map(lambda c: '# %s' % strip_comment(c), 
                                      options.comments))
         entry.set_address('%s %s' % (options.ipv4, ' '.join(options.names)))
         if options.date:
@@ -718,89 +735,113 @@ def from_options(options):
         yield entry
 
 
-def filter_addresses(options, entries):
+def from_hosts(path=None, exclude=False, quiet=True):
     '''
-    Filter entries to exclude any addresses given in the options.
+    Generate a sequence of entries from the local hosts file.
     '''
-    addresses = set()
-    for address in options.remove:
+    if not exclude:
+        hosts = open_hosts(path=path, quiet=quiet)
+        for (ok, entry) in parse(split(hosts), quiet=quiet, fragile=True):
+            if ok:
+                yield entry
+        hosts.close()
+
+
+def from_paths(paths, quiet=True):
+    '''
+    Generate a sequence of entries from the given files.
+    '''
+    for path in paths:
+        note_access(path, quiet=quiet)
+        source = open(path)
+        for (ok, entry) in parse(split(source), quiet=quiet):
+            if ok:
+                yield entry
+        source.close()
+
+
+def from_urls(urls, quiet=True):
+    '''
+    Generate a sequence of entries from the given URLs.
+    '''
+    for path in pull_urls(urls, quiet=quiet):
+        source = open(path)
+        for (ok, entry) in parse(split(source), quiet=quiet):
+            if ok:
+                yield entry
+        source.close()
+
+
+def from_stdin(include, quiet=True):
+    '''
+    Generate a sequence of entries from stding.
+    '''
+    if include:
+        note_access('the command line (stdin)', quiet=quiet)
+        for (ok, entry) in parse(split(stdin), quiet=quiet):
+            if ok:
+                yield entry
+
+
+def filter_addresses(ipv4s, entries):
+    '''
+    Filter entries to exclude any addresses given in the list.
+    '''
+    to_remove = set()
+    for address in ipv4s:
         match = IPV4.match(address)
         if not match or match.group(2).strip():
             raise Exception('Bad address to remove: %s' % address)
         else:
-            addresses.add(match.group(1))
+            to_remove.add(match.group(1))
     for entry in entries:
-        if entry.ipv4 not in addresses:
+        if entry.ipv4 not in to_remove:
             yield entry
 
 
-def read_all(options):
+def write(out, entries, erase=False):
     '''
-    Provide an iterator over all inputs, according to the options.
-    Note that we avoid "finally" to close files (and "with"), for backwards
-    compatability, at the risk of leaving files open (not an issue in normal
-    use, but libraries may want to re-implement).
-    '''
-    for entry in from_options(options):
-        yield entry
-    if not options.exclude:
-        hosts = open_hosts(path=options.path, quiet=options.quiet)
-        for (ok, entry) in parse(split(hosts), quiet=options.quiet, 
-                                 fragile=True):
-            if ok:
-                yield entry
-        hosts.close()
-    for path in options.inputs:
-        note_access(path, options.quiet)
-        source = open(path)
-        for (ok, entry) in parse(split(source), quiet=options.quiet):
-            if ok:
-                yield entry
-        source.close()
-    for path in pull_urls(options.urls, quiet=options.quiet):
-        source = open(path)
-        for (ok, entry) in parse(split(source), quiet=options.quiet):
-            if ok:
-                yield entry
-        source.close()
-    if options.stdin:
-        note_access('the command line (stdin)', options.quiet)
-        for (ok, entry) in parse(split(stdin), quiet=options.quiet):
-            if ok:
-                yield entry
-        
+    Write a sequence of Entry instances to the given file.
 
-def write(out, entries):
-    print >> out, '### BEGIN GHETTONET'
-    print >> out
-    for entry in entries:
-        print >> out, str(entry)
+    If erase is True, and there are not entries, we don't write the 
+    header lines.
+    '''
+    entries = list(entries) # force evaluation of generators
+    if not erase or entries:
+        print >> out, '### BEGIN GHETTONET'
         print >> out
-    print >> out, '### END GHETTONET'
+        for entry in entries:
+            print >> out, str(entry)
+            print >> out
+        print >> out, '### END GHETTONET'
 
 
-def read_existing(path):
-    note_access(path, options.quiet)
+def read_existing(path, quiet=True):
+    '''
+    Read a sequence of lines from a file, excluding the GhettoNet entries.
+    This is used to read the "normal" part of the ohosts file.
+    '''
+    note_access(path, quiet)
     source = open(path)
-    for (skip, lines) in parse(split(source), quiet=options.quiet):
+    for (skip, lines) in parse(split(source), quiet=quiet):
         if not skip:
             for line in lines:
                 yield line
     source.close()
 
 
-def update_hosts(options, entries):
+def update_hosts(entries, erase=False, hosts_path=None, quiet=True):
     '''
     Store non-GhettoNet data from the existing file, rename it to a 
     backup, then write the new data (non-GhettoNet followed by merged
     entries).
     '''
-    path = get_hosts_path(path=options.path)
-    existing = list(read_existing(path)) # force read and close
+    path = get_hosts_path(path=hosts_path)
+    existing = list(read_existing(path, quiet)) # force read and close
     count = 0
     while (exists('%s.%d' % (path, count))): count = count + 1
     backup = '%s.%d' % (path, count)
-    if not options.quiet:
+    if not quiet:
         print >> stderr, 'Copying %s to %s' % (path, backup)
     try:
         rename(path, backup)
@@ -808,27 +849,40 @@ def update_hosts(options, entries):
         raise Exception('The existing hosts file could not be renamed.  '
                         'You need to run this program with system rights.  '
                         'If you do not understand this, DO NOT USE.')
-    note_access(path, options.quiet, write=True)
+    note_access(path, quiet, write=True)
     hosts = open(path, 'w')
     for line in existing:
         print >> hosts, line
     print >> hosts
-    write(hosts, entries)
+    write(hosts, entries, erase=erase)
     hosts.close()
 
 
 if __name__ == '__main__':
+    '''
+    This is the main driver for the command line utility.  It also shows
+    how the routines above can be used together - the various "from_"
+    routines provide a source of Entry instances which are then merged
+    and filtered before writing.
+    '''
     parser = build_parser()
     (options, args) = parser.parse_args()
     if options.doctests:
         testmod(verbose=True)
     elif args:
         parser.error('Missing option flag (do you need to include -i?)')
-    elif options.write:
-        update_hosts(options, 
-                     filter_addresses(options, 
-                                      merge(read_all(options), options.quiet)))
     else:
-        write(stdout, 
-              filter_addresses(options, 
-                               merge(read_all(options), options.quiet)))
+        entries = chain(from_options(options),
+                        from_hosts(path=options.path, 
+                                   exclude=options.exclude, 
+                                   quiet=options.quiet),
+                        from_paths(options.inputs, quiet=options.quiet),
+                        from_urls(options.urls, quiet=options.quiet),
+                        from_stdin(options.stdin, quiet=options.quiet))
+        entries = merge(entries, quiet=options.quiet)
+        entries = filter_addresses(options.remove, entries)
+        if options.write:
+            update_hosts(entries, erase=options.exclude, 
+                         hosts_path=options.path, quiet=options.quiet)
+        else:
+            write(stdout, entries)
