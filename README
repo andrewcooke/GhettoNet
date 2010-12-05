@@ -50,18 +50,7 @@ low probability of causing errors.
 The date indicates when the information was known and is used to prioritise
 conflicting entries, if present (most recent date wins).
 
-Here is a complete example of a GhettoNet file:
-
-  ### BEGIN GHETTONET
-
-  # wikileaks.ch from DNS
-  ## DATE 2010-12-4
-  213.251.145.96    www.wikileaks.org wikileaks.org
-
-  ### END GHETTONET
-
-Note that indentation and blank lines are optional, as are the comment and 
-date.
+Indentation and blank lines are optional, as are the comment and date.
 
 The most important part of this program is the file format.  Please write new
 clients or design new ways of spreading this data - this is very much a proof
@@ -152,3 +141,30 @@ Licence
 
 This code is placed into the public domain.  You can do whatever you want with
 it, but it comes with no warranty or guarantee.
+
+
+Example
+-------
+
+To load the example data below on Linux use
+  sudo ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
+
+
+### BEGIN GHETTONET
+
+## DATE 2010-12-05
+# see http://www.guardian.co.uk/media/2010/dec/05/wikileaks-internet-backlash-us-pressure
+# 213.251.145.96 also working
+88.80.13.160 www.wikileaks.org wikileaks.org
+
+## DATE 2010-12-05
+# from torrent-finder.info
+# see http://thegoodnetguide.com/tag/torrent-finder/
+208.101.51.56 www.torrent-finder.com torrent-finder.com
+
+## DATE 2010-12-05
+# from rapgodfathers.info
+# see http://thegoodnetguide.com/tag/torrent-finder/
+208.101.51.56 www.rapgodfathers.com rapgodfathers.com
+
+### END GHETTONET

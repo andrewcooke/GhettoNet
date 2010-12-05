@@ -9,6 +9,9 @@
 rm -f ./hosts*
 # Then copy the system file here for testing
 cp /etc/hosts ./hosts
+# Drop any existing entries and save
+./ghettonet.py -w -x -p ./hosts
+cp ./hosts ./hosts-empty
 # Update from the web
 ./ghettonet.py -w -p ./hosts -u https://github.com/ghettonet/GhettoNet
 # Update from a local file
@@ -25,5 +28,5 @@ diff ./hosts ./test-target-1.txt
 # Drop all entries
 ./ghettonet.py -w -x -p ./hosts 
 # Compare with initial file
-diff ./hosts /etc/hosts
+diff ./hosts ./hosts-empty
 
