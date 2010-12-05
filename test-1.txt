@@ -1,0 +1,4 @@
+### BEGIN GHETTONET
+1.2.3.4 one.two.three.four two.three.four
+## date 2010-01-01
+5.6.7.8 five.six.seven.eight
