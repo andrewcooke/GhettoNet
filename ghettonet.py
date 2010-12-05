@@ -392,7 +392,6 @@ class Entry(object):
         if len(self.names) == 1:
             return self
         else:
-            self.names = filter(lambda n: n != name, self.names)
             clone = Entry(ipv4=self.ipv4, names=[name], date=self.date, 
                           date_extra=self.date_extra, comments=self.comments)
             return clone
@@ -444,6 +443,7 @@ def parse(contents, quiet=True, fragile=False):
                     yield (True, Entry.from_lines(lines))
                 except ParseException:
                     discard()
+                    in_text = True
                 lines = []
     if in_text:
         if lines:
