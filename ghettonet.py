@@ -141,7 +141,10 @@ COMMENT_OR_BLANK = compile_(r'^\s*(?:#.*)?$')
 # these match fragments of a line
 IPV4 = compile_(r'^\s*(\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3})(.*)')
 # this attempts to drop embedded HTML to help pull from web pages
-NAME = compile_(r'^\s*(?:<[^>]+>\s*)*([\w\-]+(?:\.[\w\-]+)*)\s*(?:<[^>]+>\s*)*(.*)')
+NAME = compile_(r'^\s*([\w\-]+(?:\.[\w\-]+)*)(.*)')
+
+# clunky removal of HTML markup
+HTML = compile_(r'<[^<>]+>')
 
 # default paths for hosts file, by platform (please extend/correct)
 DEFAULT_HOSTS = {'Windows': environ.get('SystemRoot', 'C:') + '\system32\drivers\etc\hosts',
@@ -249,6 +252,10 @@ Examples:
 
 class ParseException(Exception):
     pass
+
+
+def remove_html(line):
+    return ''.join(HTML.split(line))
 
 
 class Entry(object):
@@ -430,7 +437,7 @@ def parse(contents, quiet=True, fragile=False):
                                      (linesep, linesep.join(lines))
 
     for line in contents:
-        line = line.strip()
+        line = remove_html(line).strip()
         lines.append(line)
         if in_text:
             if BEGIN.match(line):
