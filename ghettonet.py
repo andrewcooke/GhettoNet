@@ -184,6 +184,9 @@ Examples:
 
   To remove all ghettonet entries from your hosts file
     %prog -w -x
+
+  To update hosts file from a web page:
+    %prog -w -u https://github.com/ghettonet/GhettoNet
 ''', version=__VERSION__)
     parser.add_option('-i', '--input', action='append', type='string',
                       dest='inputs', metavar='FILE', default=[],

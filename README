@@ -106,6 +106,9 @@ Examples:
   To remove all ghettonet entries from your hosts file
     ghettonet.py -w -x
 
+  To update hosts file from a web page:
+    ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
+
 
 Options:
   --version             show program's version number and exit
