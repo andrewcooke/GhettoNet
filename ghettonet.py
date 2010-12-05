@@ -138,7 +138,8 @@ COMMENT_OR_BLANK = compile_(r'^\s*(?:#.*)?$')
 
 # these match fragments of a line
 IPV4 = compile_(r'^\s*(\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3})(.*)')
-NAME = compile_(r'^\s*(\S+(?:\.\S+)*)(.*)')
+# this attempts to drop embedded HTML to help pull from web pages
+NAME = compile_(r'^\s*(?:<[^>]+>\s*)?(\w+(?:\.\w+)*)\s*(?:<[^>]+>\s*)?(.*)')
 
 # default paths for hosts file, by platform (please extend/correct)
 DEFAULT_HOSTS = {'Windows': environ.get('SystemRoot', 'C:') + '\system32\drivers\etc\hosts',
@@ -297,6 +298,11 @@ class Entry(object):
     def set_address(self, line):
         '''
         Parse the IPv4 address and associated names from the given line.
+        
+        >>> Entry().set_address('1.2.3.4 a.b.c p.q').format_address()
+        ['1.2.3.4    p.q a.b.c']
+        >>> Entry().set_address('1.2.3.4 <a href="">p.q</a>').format_address()
+        ['1.2.3.4    p.q']
         '''
         try:
             match = IPV4.match(line)
@@ -305,6 +311,7 @@ class Entry(object):
                 match = NAME.match(rest)
                 (name, rest) = match.groups()
                 self.names.append(name.lower())
+            return self # allow chaining
         except:
             raise ParseException('Could not parse addresses: %s (%s)' % 
                                  (line, exc_info()[1]))

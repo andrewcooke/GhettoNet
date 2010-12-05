@@ -28,30 +28,10 @@ o  splitting into lines based on (optional) carriage return and newline.
 o  looking for the begin line
 o  reading all data lines until the (optional) end line or bad data
 
-The EOL expression below is used to split lines:
->>> EOL.split('a\\nb\\r\\nc')
-['a', 'b', 'c']
-
 
 More than one data block may be present in a file.  The encoding is assumed to
 be whatever Python detects as the "system" encoding, unless otherwise
 specified.
-
-A valid begin line looks like this:
-### BEGIN GHETTONET
-More exactly, see the BEGIN regular expression below, with the tests:
->>> bool(BEGIN.match('### BEGIN GHETTONET'))
-True
->>> bool(BEGIN.match('##beginghettonet'))
-True
-
-A valid end line looks like:
-### END GHETTONET
-or see the END regular expression below, with tests:
->>> bool(END.match('### END GHETTONET'))
-True
->>> bool(END.match('##endghettonet'))
-True
 
 
 A valid data line is one of:
@@ -62,20 +42,6 @@ o  a valid IPv4 line (only, currently) for a hosts file
 Any other data are taken to indicate the end of the block (if these don't
 match the end line then a warning is given; if we are parsing hosts then
 we refuse to continue).
-
-The DATE regular expression matches dates:
->>> bool(DATE.match('## DATE 1967-05-19'))
-True
->>> bool(DATE.match('## DATE 1967-05-19 10:12'))
-True
->>> bool(DATE.match('## DATE 1967-05-19 10:12:45'))
-True
->>> bool(DATE.match('### DATE 1967-05-19 10:12:45 - future expansion'))
-True
->>> bool(DATE.match('## DATE 1967-05-19bad'))
-False
->>> bool(POSSIBLE_DATE.match('## DATE 1967-05-19bad')) # used to warn user
-True
 
 
 The aim above is to define something that is easy for people to generate and
