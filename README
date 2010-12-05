@@ -98,16 +98,13 @@ Examples:
     ghettonet.py -w -i new-addresses.txt
 
   To update hosts from a URL
-    ghettonet.py -w -u http://example.com/ghettonet.html
+    ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
 
   To display ghettonet entries in your hosts file
     ghettonet.py
 
   To remove all ghettonet entries from your hosts file
     ghettonet.py -w -x
-
-  To update hosts file from a web page:
-    ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
 
 
 Options:
