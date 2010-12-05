@@ -70,6 +70,58 @@ clients or design new ways of spreading this data - this is very much a proof
 of concept (and, I hope, a librray others can build on).
 
 
+Help Output
+-----------
+
+: ./ghettonet.py -h
+Usage: 
+
+  ghettonet.py [options]
+
+GhettoNet manages IPv4/DNS data in a format compatible with hosts files.
+
+The format can be easily embedded in files, emails and web pages:
+
+  ### BEGIN GHETTONET
+  213.251.145.96    www.wikileaks.org wikileaks.org
+  ### END GHETTONET
+
+By default, all inputs are combined and written to stdout.  Inputs are
+taken from the local hosts file, any files specified with '-i', and any
+URLs specified with '-u'.
+
+If the -w option is given then hosts is written to instead.
+
+
+Examples:
+
+  To update your hosts file from the file 'new-addresses.txt'
+    ghettonet.py -w -i new-addresses.txt
+
+  To update hosts from a URL
+    ghettonet.py -w -u http://example.com/ghettonet.html
+
+  To display ghettonet entries in your hosts file
+    ghettonet.py
+
+  To remove all ghettonet entries from your hosts file
+    ghettonet.py -w -x
+
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -i FILE, --input=FILE
+                        read input from FILE
+  -p PATH, --path=PATH  path to hosts file
+  -q, --quiet           suppress messages
+  -s, --stdin           read input from stdin
+  -t, --test            run doctests
+  -u URL, --url=URL     read input from FILE
+  -w, --write           write to the hosts file
+  -x, --exclude         exclude the hosts file from input
+
+
 Licence
 -------
 
