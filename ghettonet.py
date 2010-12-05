@@ -38,9 +38,7 @@ The EOL expression below is used to split lines:
 ['a', 'b', 'c']
 
 
-More than one data block may be present in a file.  The encoding is assumed to
-be whatever Python detects as the "system" encoding, unless otherwise
-specified.
+More than one data block may be present in a file.
 
 A valid begin line looks like this:
 ### BEGIN GHETTONET
