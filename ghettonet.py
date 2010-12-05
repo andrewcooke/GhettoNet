@@ -19,7 +19,7 @@ it must be run from a prompt, as a privileged user.  If you don't know what
 that means then you need more help - I can't explain everything here, but I
 hope that other people will, so please search on the internet for advaice.
 
-To see all the options available, run ghettonet.py without any arguments.
+To see all the options available, run ghettonet.py with the "-h" argument.
 
 Requires Python 2.4 or later.
 

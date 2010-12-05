@@ -17,7 +17,8 @@ it must be run from a prompt, as a privileged user.  If you don't know what
 that means then you need more help - I can't explain everything here, but I
 hope that other people will, so please search on the internet for advaice.
 
-To see all the options available, run ghettonet.py without any arguments.
+To see all the options available, run ghettonet.py with the "-h" argument
+or checked the "Help Output" section below.
 
 Requires Python 2.4 or later.
 
@@ -96,6 +97,9 @@ Examples:
 
   To update hosts from a URL
     ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
+  Since updating a hosts file requires system privileges, a typical use on
+  Linux might look like:
+    sudo ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
 
   To display ghettonet entries in your hosts file
     ghettonet.py
