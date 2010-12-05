@@ -73,7 +73,6 @@ of concept (and, I hope, a librray others can build on).
 Help Output
 -----------
 
-: ./ghettonet.py -h
 Usage: 
 
   ghettonet.py [options]
