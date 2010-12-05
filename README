@@ -1,0 +1,111 @@
+
+Welcome to GhettoNet!
+======================
+
+
+Introduction
+------------
+
+GhettoNet helps you see censored websites by adding their names to a file on
+your computer.
+
+This initial version of GhettoNet is a "command line app".  That means that
+it must be run from a prompt, as a privileged user.  If you don't know what
+that means then you need more help - I can't explain everything here, but I
+hope that other people will, so please search on the internet for advaice.
+
+To see all the options available, run ghettonet.py without any arguments.
+
+Requires Python 2.4 or later.
+
+
+File Format
+-----------
+
+GhettoNet data can be embedded in files a variety of formats.  A valid data
+block is detected by:
+o  splitting into lines based on (optional) carriage return and newline.
+o  looking for the begin line
+o  reading all data lines until the (optional) end line or bad data
+
+The EOL expression below is used to split lines:
+>>> EOL.split('a\\nb\\r\\nc')
+['a', 'b', 'c']
+
+
+More than one data block may be present in a file.  The encoding is assumed to
+be whatever Python detects as the "system" encoding, unless otherwise
+specified.
+
+A valid begin line looks like this:
+### BEGIN GHETTONET
+More exactly, see the BEGIN regular expression below, with the tests:
+>>> bool(BEGIN.match('### BEGIN GHETTONET'))
+True
+>>> bool(BEGIN.match('##beginghettonet'))
+True
+
+A valid end line looks like:
+### END GHETTONET
+or see the END regular expression below, with tests:
+>>> bool(END.match('### END GHETTONET'))
+True
+>>> bool(END.match('##endghettonet'))
+True
+
+
+A valid data line is one of:
+o  a comment, prefixed by #
+o  a blank line
+o  a date (simplified ISO 8601: yyyy-mm-dd hh:mm:ss) prefixed by ## DATE
+o  a valid IPv4 line (only, currently) for a hosts file 
+Any other data are taken to indicate the end of the block (if these don't
+match the end line then a warning is given; if we are parsing hosts then
+we refuse to continue).
+
+The DATE regular expression matches dates:
+>>> bool(DATE.match('## DATE 1967-05-19'))
+True
+>>> bool(DATE.match('## DATE 1967-05-19 10:12'))
+True
+>>> bool(DATE.match('## DATE 1967-05-19 10:12:45'))
+True
+>>> bool(DATE.match('### DATE 1967-05-19 10:12:45 - future expansion'))
+True
+>>> bool(DATE.match('## DATE 1967-05-19bad'))
+False
+>>> bool(POSSIBLE_DATE.match('## DATE 1967-05-19bad')) # used to warn user
+True
+
+
+The aim above is to define something that is easy for people to generate and
+send, and which can be stored directly in the hosts file, but which has a 
+low probability of causing errors.
+
+The date indicates when the information was known and is used to prioritise
+conflicting entries, if present (most recent date wins).
+
+
+Here is a complete example of a GhettoNet file:
+
+  ### BEGIN GHETTONET
+
+  # wikileaks.ch from DNS
+  ## DATE 2010-12-4
+  213.251.145.96    www.wikileaks.org wikileaks.org
+
+  ### END GHETTONET
+
+Note that indentation and blank lines are optional, as are the comment and 
+date.
+
+The most important part of this program is the file format.  Please write new
+clients or design new ways of spreading this data - this is very much a proof
+of concept (and, I hope, a librray others can build on).
+
+
+Licence
+-------
+
+This code is placed into the public domain.  You can do whatever you want with
+it, but it comes with no warranty or guarantee.
