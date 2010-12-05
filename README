@@ -106,19 +106,44 @@ Examples:
   To remove all ghettonet entries from your hosts file
     ghettonet.py -w -x
 
+  To add an address:
+    ghettonet.py -w -4 1.2.3.4 -n example.com
+
+  To remove an address:
+    ghettonet.py -w -r 1.2.3.4
+
 
 Options:
   --version             show program's version number and exit
   -h, --help            show this help message and exit
-  -i FILE, --input=FILE
-                        read input from FILE
-  -p PATH, --path=PATH  path to hosts file
   -q, --quiet           suppress messages
-  -s, --stdin           read input from stdin
   -t, --test            run doctests
-  -u URL, --url=URL     read input from FILE
-  -w, --write           write to the hosts file
-  -x, --exclude         exclude the hosts file from input
+
+  Sources:
+    -i FILE, --input=FILE
+                        read input from FILE (repeatable)
+    -s, --stdin         read input from a pipe
+    -u URL, --url=URL   read input from FILE (repeatable)
+
+  Hosts file:
+    -p PATH, --path=PATH
+                        path to hosts file
+    -w, --write         write to the hosts file
+    -x, --exclude       exclude the hosts file from input
+
+  Add an entry:
+    -4 IPV4, --ipv4=IPV4
+                        IPv4 address to add
+    -n NAME, --name=NAME
+                        name to add (repeatable)
+    -c COMMENT, --comment=COMMENT
+                        comment to add (repeatable)
+    -d DATE, --date=DATE
+                        date to add
+
+  Remove entries:
+    -r IPV4, --remove=IPV4
+                        IPv4 address to remove (repeatable)
 
 
 Licence

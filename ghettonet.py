@@ -116,7 +116,7 @@ it, but it comes with no warranty or guarantee.
 
 from datetime import datetime
 from doctest import testmod
-from optparse import OptionParser
+from optparse import OptionParser, OptionGroup
 from os import linesep, environ, remove, rename
 from os.path import exists, isfile
 from platform import system
@@ -184,26 +184,61 @@ Examples:
 
   To remove all ghettonet entries from your hosts file
     %prog -w -x
+
+  To add an address:
+    %prog -w -4 1.2.3.4 -n example.com
+
+  To remove an address:
+    %prog -w -r 1.2.3.4
 ''', version=__VERSION__)
-    parser.add_option('-i', '--input', action='append', type='string',
-                      dest='inputs', metavar='FILE', default=[],
-                      help='read input from FILE')
-    parser.add_option('-p', '--path', action='store', type='string',
-                      dest='path', metavar='PATH', default=None,
-                      help='path to hosts file')
+
     parser.add_option('-q', '--quiet', action='store_true', default=False,
                       dest='quiet', help='suppress messages')
-    parser.add_option('-s', '--stdin', action='store_true', default=False,
-                      dest='stdin', help='read input from stdin')
     parser.add_option('-t', '--test', action='store_true', default=False,
                       dest='doctests', help='run doctests')
-    parser.add_option('-u', '--url', action='append', type='string',
-                      dest='urls', metavar='URL', default=[],
-                      help='read input from FILE')
-    parser.add_option('-w', '--write', action='store_true', default=False,
-                      dest='write', help='write to the hosts file')
-    parser.add_option('-x', '--exclude', action='store_true', default=False,
-                      dest='exclude', help='exclude the hosts file from input')
+
+    group = OptionGroup(parser, 'Sources')
+    group.add_option('-i', '--input', action='append', type='string',
+                     dest='inputs', metavar='FILE', default=[],
+                     help='read input from FILE (repeatable)')
+    group.add_option('-s', '--stdin', action='store_true', default=False,
+                     dest='stdin', help='read input from a pipe')
+    group.add_option('-u', '--url', action='append', type='string',
+                     dest='urls', metavar='URL', default=[],
+                     help='read input from FILE (repeatable)')
+    parser.add_option_group(group)
+
+    group = OptionGroup(parser, 'Hosts file')
+    group.add_option('-p', '--path', action='store', type='string',
+                     dest='path', metavar='PATH', default=None,
+                     help='path to hosts file')
+    group.add_option('-w', '--write', action='store_true', default=False,
+                     dest='write', help='write to the hosts file')
+    group.add_option('-x', '--exclude', action='store_true', default=False,
+                     dest='exclude', help='exclude the hosts file from input')
+    parser.add_option_group(group)
+
+    group = OptionGroup(parser, 'Add an entry')
+    group.add_option('-4', '--ipv4', action='store', type='string',
+                     dest='ipv4', metavar='IPV4', default='',
+                     help='IPv4 address to add')
+    group.add_option('-n', '--name', action='append', type='string',
+                     dest='names', metavar='NAME', default=[],
+                     help='name to add (repeatable)')
+    group.add_option('-c', '--comment', action='append', type='string',
+                     dest='comments', metavar='COMMENT', default=[],
+                     help='comment to add (repeatable)')
+    group.add_option('-d', '--date', action='store', type='string',
+                     dest='date', metavar='DATE', default='',
+                     help='date to add')
+    parser.add_option_group(group)
+
+    group = OptionGroup(parser, 'Remove entries')
+    group.add_option('-r', '--remove', action='append', type='string',
+                     dest='remove', metavar='IPV4', default=[],
+                     help='IPv4 address to remove (repeatable)')
+    parser.add_option_group(group)
+
     return parser
 
 
@@ -665,6 +700,39 @@ def pull_urls(urls, quiet=True):
         remove(path)
 
 
+def from_options(options):
+    '''
+    Generate an entry from the command line options.
+    '''
+    if options.ipv4 or options.names or options.comments or options.date:
+        if not options.ipv4:
+            raise Exception('Missing IPv4 address (-4)')
+        if not options.names:
+            raise Exception('Missing names (-n)')
+        entry = Entry(comments = map(lambda c: '# %s' % strip(c), 
+                                     options.comments))
+        entry.set_address('%s %s' % (options.ipv4, ' '.join(options.names)))
+        if options.date:
+            entry.set_date('## DATE %s' % options.date)
+        yield entry
+
+
+def remove(options, entries):
+    '''
+    Filter entries to exclude any addresses given in the options.
+    '''
+    addresses = set()
+    for address in options.remove:
+        match = IPV4.match(address)
+        if not match or match.group(2).strip():
+            raise Exception('Bad address to remove: %s' % address)
+        else:
+            addresses.add(match.group(1))
+    for entry in entries:
+        if entry.ipv4 not in addresses:
+            yield entry
+
+
 def read_all(options):
     '''
     Provide an iterator over all inputs, according to the options.
@@ -672,6 +740,8 @@ def read_all(options):
     compatability, at the risk of leaving files open (not an issue in normal
     use, but libraries may want to re-implement).
     '''
+    for entry in from_options(options):
+        yield entry
     if not options.exclude:
         hosts = open_hosts(path=options.path, quiet=options.quiet)
         for (ok, entry) in parse(split(hosts), quiet=options.quiet, 
@@ -754,6 +824,8 @@ if __name__ == '__main__':
     elif args:
         parser.error('Missing option flag (do you need to include -i?)')
     elif options.write:
-        update_hosts(options, merge(read_all(options), options.quiet))
+        update_hosts(options, remove(options, 
+                                     merge(read_all(options), options.quiet)))
     else:
-        write(stdout, merge(read_all(options), options.quiet))
+        write(stdout, remove(options, 
+                             merge(read_all(options), options.quiet)))
