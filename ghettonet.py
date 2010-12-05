@@ -208,7 +208,7 @@ Examples:
                      dest='stdin', help='read input from a pipe')
     group.add_option('-u', '--url', action='append', type='string',
                      dest='urls', metavar='URL', default=[],
-                     help='read input from FILE (repeatable)')
+                     help='read input from URL (repeatable)')
     parser.add_option_group(group)
 
     group = OptionGroup(parser, 'Hosts file')

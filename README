@@ -122,7 +122,7 @@ Options:
     -i FILE, --input=FILE
                         read input from FILE (repeatable)
     -s, --stdin         read input from a pipe
-    -u URL, --url=URL   read input from FILE (repeatable)
+    -u URL, --url=URL   read input from URL (repeatable)
 
   Hosts file:
     -p PATH, --path=PATH
