@@ -717,7 +717,7 @@ def from_options(options):
         yield entry
 
 
-def remove(options, entries):
+def filter_addresses(options, entries):
     '''
     Filter entries to exclude any addresses given in the options.
     '''
@@ -824,8 +824,10 @@ if __name__ == '__main__':
     elif args:
         parser.error('Missing option flag (do you need to include -i?)')
     elif options.write:
-        update_hosts(options, remove(options, 
-                                     merge(read_all(options), options.quiet)))
+        update_hosts(options, 
+                     filter_addresses(options, 
+                                      merge(read_all(options), options.quiet)))
     else:
-        write(stdout, remove(options, 
-                             merge(read_all(options), options.quiet)))
+        write(stdout, 
+              filter_addresses(options, 
+                               merge(read_all(options), options.quiet)))
