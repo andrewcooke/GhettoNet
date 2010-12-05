@@ -31,11 +31,9 @@ o  splitting into lines based on (optional) carriage return and newline.
 o  looking for the begin line
 o  reading all data lines until the (optional) end line or bad data
 
-
 More than one data block may be present in a file.  The encoding is assumed to
 be whatever Python detects as the "system" encoding, unless otherwise
 specified.
-
 
 A valid data line is one of:
 o  a comment, prefixed by #
@@ -46,14 +44,12 @@ Any other data are taken to indicate the end of the block (if these don't
 match the end line then a warning is given; if we are parsing hosts then
 we refuse to continue).
 
-
 The aim above is to define something that is easy for people to generate and
 send, and which can be stored directly in the hosts file, but which has a 
 low probability of causing errors.
 
 The date indicates when the information was known and is used to prioritise
 conflicting entries, if present (most recent date wins).
-
 
 Here is a complete example of a GhettoNet file:
 
