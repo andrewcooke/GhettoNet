@@ -88,7 +88,7 @@ Examples:
     ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
   Since updating a hosts file requires system privileges, a typical use on
   Linux might look like:
-    sudo ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
+    sudo ./ghettonet.py -w -u https://github.com/ghettonet/GhettoNet
 
   To display ghettonet entries in your hosts file
     ghettonet.py
