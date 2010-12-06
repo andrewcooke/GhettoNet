@@ -349,8 +349,6 @@ class Entry(object):
         
         >>> Entry().set_address('1.2.3.4 a.b.c p.q').format_address()
         ['1.2.3.4    a.b.c p.q']
-        >>> Entry().set_address('1.2.3.4 <a href="">p.q</a>').format_address()
-        ['1.2.3.4    p.q']
         '''
         try:
             match = IPV4.match(line)
@@ -395,6 +393,10 @@ class Entry(object):
         return '<Entry %s:%s %s %s>' % (self.ipv4, ';'.join(self.names),
                                         self.format_date(), self.comments)
 
+    def clone(self):
+        return Entry(ipv4=self.ipv4, names=list(self.names), date=self.date, 
+                     date_extra=self.date_extra, comments=list(self.comments))
+
     def single_name(self, name):
         '''
         Return a clone of this entry, but with a single name (we can re-use 
@@ -404,8 +406,8 @@ class Entry(object):
         if len(self.names) == 1:
             return self
         else:
-            clone = Entry(ipv4=self.ipv4, names=[name], date=self.date, 
-                          date_extra=self.date_extra, comments=self.comments)
+            clone = self.clone()
+            clone.names = [name]
             return clone
 
 
@@ -421,6 +423,13 @@ def parse(contents, quiet=True, fragile=False):
     ...             '',
     ...             '## DATE 2010-12-04',
     ...             '127.0.0.1 localhost',
+    ...             '### END GHETTONET']))
+    [(True, <Entry 127.0.0.1:localhost ['## DATE 2010-12-04 00:00:00'] ['# comment', '']>)]
+    >>> list(parse(['### BEGIN GHETTONET',
+    ...             '# comment',
+    ...             '',
+    ...             '## DATE 2010-12-04',
+    ...             '<span>127.0.0.1 <a href="">localhost</a></span>',
     ...             '### END GHETTONET']))
     [(True, <Entry 127.0.0.1:localhost ['## DATE 2010-12-04 00:00:00'] ['# comment', '']>)]
     '''
@@ -509,7 +518,7 @@ def merge(entries, quiet=True, merge_names=None):
         if entry.ipv4 not in by_ipv4:
             by_ipv4[entry.ipv4] = entry
         else:
-            combine_comments(by_ipv4[entry.ipv4], entry)
+            combine_comments(by_ipv4[entry.ipv4].comments, entry.comments)
             by_ipv4[entry.ipv4].names.append(name)
     return by_ipv4.values()
                 
@@ -586,9 +595,9 @@ def merge_same_ipv4(entries, quiet=True):
     def combine():
         for group in groups():
             merged = group[0]
-            known_comments = set(map(strip_comment, merged.comments))
+            known = set(map(strip_comment, merged.comments))
             for other in group[1:]:
-                combine_comments(merged, other, known_comments)
+                combine_comments(merged.comments, other.comments, known=known)
             if not quiet and len(group) > 1:
                 print >> stderr, 'Merged %d entries with IPv4 %s for %s' % \
                     (len(group) - 1, merged.ipv4, merged.names[0])
@@ -615,21 +624,22 @@ def strip_comment(comment):
     return comment
 
 
-def combine_comments(merged, other, known_comments=None):
+def combine_comments(merged, other, known=None):
     '''
-    Copy non-duplicate comments from other to merged.
+    Copy non-duplicate comments from other to merged.  Note that the first
+    two arguments are the lists of comments (the first is mustated), and not
+    Enrty instances.
 
-    >>> combine_comments(Entry(comments=['a', 'b']),
-    ...                  Entry(comments=['a', 'c']))
-    <Entry None: [] ['a', 'b', 'c']>
+    >>> combine_comments(['a', 'b'], ['a', 'c'])
+    ['a', 'b', 'c']
     '''
-    if known_comments is None:
-        known_comments = set(map(strip_comment, merged.comments))
-    for comment in other.comments:
+    if known is None:
+        known = set(map(strip_comment, merged))
+    for comment in other:
         stripped = strip_comment(comment)
-        if stripped not in known_comments:
-            known_comments.add(stripped)
-            merged.comments.append(comment)
+        if stripped not in known:
+            known.add(stripped)
+            merged.append(comment)
     return merged
 
 
@@ -645,6 +655,11 @@ def merge_force(entries, quiet=True):
     ...              Entry(ipv4='1.3', names=['x'], comments=['a', 'c'])], 
     ...             quiet=False)
     [<Entry 1.2:x [] ['a', 'b', 'c', '## CONFLICT: 1.3']>]
+    >>> merge_force([Entry(ipv4='1.2', names=['x'], comments=['a', 'b',
+    ...                  '## CONFLICT: 1.3']), 
+    ...              Entry(ipv4='1.3', names=['x'], comments=['a', 'c'])], 
+    ...             quiet=False)
+    [<Entry 1.2:x [] ['a', 'b', '## CONFLICT: 1.3', 'c']>]
     '''
     if entries:
         assert reduce(lambda same, e: same and len(e.names) == 1,
@@ -660,12 +675,14 @@ def merge_force(entries, quiet=True):
     if quiet:
         raise Exception('Conflicting IPv4 addresses (%s) for %s' % \
             (','.join(map(lambda e: e.ipv4, entries)), merged.names[0]))
-    known_comments = set(map(strip_comment, merged.comments))
+    known = set(map(strip_comment, merged.comments))
     for other in entries[1:]:
         print >> stderr, 'WARNING: Discarding %s as conflict for %s' % \
             (other.ipv4, merged.names[0])
-        combine_comments(merged, other, known_comments)
-        merged.comments.append('## CONFLICT: %s' % other.ipv4)
+        # avoid duplicates by adding conflict to comments before merge
+        other_comments = list(other.comments)
+        other_comments.append('## CONFLICT: %s' % other.ipv4)
+        combine_comments(merged.comments, other_comments, known=known)
     return [merged]
     
 
@@ -837,6 +854,24 @@ def read_existing(path, quiet=True):
     source.close()
 
 
+def drop_trailing_blanks(lines):
+    '''
+    This cleans up the appearance of the final hosts file on deletion.
+
+    >>> drop_trailing_blanks(['a', 'b'])
+    ['a', 'b']
+    >>> drop_trailing_blanks(['a', 'b', '', ' '])
+    ['a', 'b']
+    >>> drop_trailing_blanks(['', ' '])
+    []
+    >>> drop_trailing_blanks([])
+    []
+    '''
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return lines
+
+
 def update_hosts(entries, erase=False, hosts_path=None, quiet=True):
     '''
     Store non-GhettoNet data from the existing file, rename it to a 
@@ -858,7 +893,7 @@ def update_hosts(entries, erase=False, hosts_path=None, quiet=True):
                         'If you do not understand this, DO NOT USE.')
     note_access(path, quiet, write=True)
     hosts = open(path, 'w')
-    for line in existing:
+    for line in drop_trailing_blanks(existing):
         print >> hosts, line
     print >> hosts
     write(hosts, entries, erase=erase)
